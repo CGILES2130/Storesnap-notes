@@ -1,8 +1,7 @@
 export const metadata = {
   title: "StoreSnap Notes",
-  description: "Fast, structured store visit notes — with photos and one-tap email",
+  description: "Store visit notes with photos, PDF export, and email attachments",
 };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

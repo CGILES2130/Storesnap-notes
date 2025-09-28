@@ -1,40 +1,29 @@
-# StoreSnap Notes (Web)
+# StoreSnap Notes (Next.js)
 
-A lightweight web app to capture store visit notes and photos, generate a clean report, and open a prefilled email to the store manager.
+Capture store visit notes and photos, generate a branded report, and email it with **PDF + photo attachments**.
 
-## Local run
-
+## Quick start (local)
 ```bash
 npm install
 npm run dev
-# Visit http://localhost:3000
+# open http://localhost:3000
 ```
 
-## Build
+## Deploy via GitHub → Vercel
+1. Create a new GitHub repo (e.g., `storesnap-notes`).
+2. Push this folder to GitHub:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial"
+   git branch -M main
+   git remote add origin https://github.com/<you>/storesnap-notes.git
+   git push -u origin main
+   ```
+3. Go to https://vercel.com/new → Import Git Repo → pick your repo → **Deploy**.
 
-```bash
-npm run build
-npm start
-```
-
-## Deploy (Vercel – recommended)
-
-1. Create a new empty GitHub repo and push this folder to it.
-2. Go to https://vercel.com/new and **Import** the repo.
-3. Framework preset: **Next.js** (defaults are fine).
-4. Click **Deploy**.
-5. Your live URL will be ready once the build finishes.
-
-### Netlify (alternative)
-
-- New Site -> Import from Git.
-- Build command: `npm run build`
-- Publish directory: `.next`
-- Add environment variable: `NETLIFY_NEXT_PLUGIN_SKIP = true` (if Netlify asks).
-
-## Usage notes
-
-- Use **Upload logo** to brand your header and embedded PDF/Email.
-- **Save as default template** to persist your preferred sections locally (per browser).
-- Click **Preview/Download PDF** to open a print-ready HTML; save as PDF.
-- Click **Open Email** to open your email client with the To/CC/Body prefilled.
+### SendGrid setup (for email with attachments)
+- In Vercel Project → **Settings → Environment Variables**, add:
+  - `SENDGRID_API_KEY` = your SendGrid API key
+  - `SEND_FROM` = verified sender email (e.g., `reports@yourdomain.com`)
+- Redeploy, then use **Send with attachments** in the app.

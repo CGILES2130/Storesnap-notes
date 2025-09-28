@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from "react";
 
-// --- Sections Template ---
 const DEFAULT_SECTIONS = [
   "Entrance & Signage",
   "Food Hall",
@@ -19,7 +18,7 @@ const DEFAULT_SECTIONS = [
 ];
 
 const TEMPLATE_KEY = "storesnap.template.sections";
-const LOGO_KEY = "storesnap.brand.logo"; // data URL persisted locally
+const LOGO_KEY = "storesnap.brand.logo";
 const DEFAULT_CC = ["chris.giles@bluediamond.gg"];
 
 function getTemplateSectionTitles() {
@@ -33,15 +32,12 @@ function getTemplateSectionTitles() {
   }
 }
 function saveTemplateSectionTitles(titles) {
-  try {
-    window.localStorage.setItem(TEMPLATE_KEY, JSON.stringify(titles));
-  } catch {}
+  try { window.localStorage.setItem(TEMPLATE_KEY, JSON.stringify(titles)); } catch {}
 }
 function mapTitlesToSectionObjs(titles) {
   return titles.map((t) => ({ id: crypto.randomUUID(), title: t, notes: [] }));
 }
 
-// --- Stores (with manager emails) ---
 const STORES = [
   { id: "3shires", name: "3 Shires Garden Centre", email_to: "ian.griffiths@bluediamond.gg", email_cc: [] },
   { id: "beckworth", name: "Beckworth Emporium", email_to: "robert.harradine@bluediamond.gg", email_cc: [] },
@@ -99,17 +95,10 @@ const STORES = [
 function formatDate(d) {
   try {
     return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     }).format(d);
-  } catch {
-    return d.toLocaleString();
-  }
+  } catch { return d.toLocaleString(); }
 }
-
 function bytesToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -117,6 +106,9 @@ function bytesToDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+function escapeHtml(str) {
+  return (str || "").replace(/[&<>\"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[ch]));
 }
 
 export default function StoreSnapNotes() {
@@ -127,7 +119,8 @@ export default function StoreSnapNotes() {
   const [summary, setSummary] = useState("Overall standards: steady. Key gaps in POS & chillers. See P1 actions below.");
   const [visitorName, setVisitorName] = useState("Chris Giles");
   const [includeInternal, setIncludeInternal] = useState(false);
-  const [logo, setLogo] = useState(null); // data URL
+  const [logo, setLogo] = useState(null);
+  const [viewer, setViewer] = useState(null);
 
   useEffect(() => {
     try {
@@ -144,7 +137,6 @@ export default function StoreSnapNotes() {
     setSections((prev) => [...prev, { id: crypto.randomUUID(), title: customSectionTitle.trim(), notes: [] }]);
     setCustomSectionTitle("");
   }
-
   function addNote(sectionId) {
     setSections((prev) =>
       prev.map((s) =>
@@ -153,25 +145,15 @@ export default function StoreSnapNotes() {
               ...s,
               notes: [
                 ...s.notes,
-                {
-                  id: crypto.randomUUID(),
-                  text: "",
-                  tags: [],
-                  priority: "P2",
-                  owner: store ? store.name + " Team" : "Store Team",
-                  due: "",
-                  internal: false,
-                  photos: [],
-                },
+                { id: crypto.randomUUID(), text: "", tags: [], priority: "P2", owner: store ? store.name + " Team" : "Store Team", due: "", internal: false, photos: [] },
               ],
             }
           : s
       )
     );
   }
-
   function removeNote(sectionId, noteId) {
-    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, notes: s.notes.filter((n) => n.id !== noteId) } : s)));
+    setSections((prev) => prev.map((s) => (s.id === section.id ? { ...s, notes: s.notes.filter((n) => n.id !== noteId) } : s)));
   }
 
   async function handlePhotos(sectionId, noteId, files) {
@@ -197,7 +179,6 @@ export default function StoreSnapNotes() {
   function buildReportHTML() {
     const dateStr = formatDate(new Date());
     const storeName = store ? store.name : "(No store selected)";
-
     const actionsRows = actions
       .map(
         (a) => `
@@ -232,10 +213,7 @@ export default function StoreSnapNotes() {
             </div>`
           )
           .join("");
-        return `
-          <h2>${escapeHtml(s.title)}</h2>
-          ${notesHtml}
-        `;
+        return `<h2>${escapeHtml(s.title)}</h2>${notesHtml}`;
       })
       .join("");
 
@@ -257,9 +235,9 @@ export default function StoreSnapNotes() {
           .note{border:1px solid #eee;border-radius:8px;padding:8px;margin:8px 0}
           .meta{font-size:12px;color:#555;display:flex;gap:8px;align-items:center;margin-bottom:6px}
           .internal{border:1px dashed #f99;color:#b00;padding:2px 6px;border-radius:8px}
-          .photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:6px}
+          .photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:6px}
           .photo{border:1px solid #eee;border-radius:6px;padding:4px}
-          .photo img{max-width:100%;height:auto;border-radius:4px}
+          .photo img{width:120px;height:120px;object-fit:cover;border-radius:4px;display:block}
         </style>
       </head>
       <body>
@@ -280,8 +258,7 @@ export default function StoreSnapNotes() {
         </table>
         ${sectionBlocks}
       </body>
-      </html>
-    `;
+      </html>`;
   }
 
   async function downloadPdf() {
@@ -290,6 +267,47 @@ export default function StoreSnapNotes() {
     const url = URL.createObjectURL(blob);
     const w = window.open(url, "_blank");
     if (!w) alert("Please allow pop-ups to preview the report.");
+  }
+
+  function dataUrlToParts(d) {
+    const match = /^data:(.+);base64,(.*)$/.exec(d);
+    if (!match) return null;
+    return { type: match[1], content: match[2] };
+  }
+  async function sendEmailWithAttachment() {
+    if (!store || !store.email_to) {
+      alert("Please select a store with a manager email address.");
+      return;
+    }
+    const html = buildReportHTML();
+    const photoData = [];
+    sections.forEach((s) =>
+      s.notes.forEach((n) =>
+        n.photos.forEach((p, idx) => {
+          const parts = dataUrlToParts(p);
+          if (parts) {
+            photoData.push({
+              filename: `${s.title.replace(/\s+/g, "_").toLowerCase()}-${idx + 1}.${parts.type.includes("png") ? "png" : "jpg"}`,
+              type: parts.type,
+              content: parts.content,
+            });
+          }
+        })
+      )
+    );
+    const subject = `Store Visit — ${store ? store.name : "(Store)"} — ${new Date().toLocaleDateString("en-GB")}`;
+    const to = store?.email_to || "";
+    const ccList = [...(store?.email_cc || []), ...DEFAULT_CC].filter(Boolean);
+    const cc = ccList.join(",");
+
+    const res = await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, cc, subject, html, photos: photoData }),
+    });
+    const data = await res.json();
+    if (data.ok) alert("Email sent with PDF + photos attached.");
+    else alert("Email send failed: " + (data.error || "unknown error"));
   }
 
   function buildMailto() {
@@ -303,8 +321,7 @@ export default function StoreSnapNotes() {
     const to = store?.email_to || "";
     const ccList = [...(store?.email_cc || []), ...DEFAULT_CC].filter(Boolean);
     const cc = ccList.join(",");
-    const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}${cc ? `&cc=${encodeURIComponent(cc)}` : ""}&body=${body}`;
-    return mailto;
+    return `mailto:${to}?subject=${encodeURIComponent(subject)}${cc ? `&cc=${encodeURIComponent(cc)}` : ""}&body=${body}`;
   }
 
   function newVisitFromTemplate() {
@@ -313,45 +330,26 @@ export default function StoreSnapNotes() {
     setSummary("Overall standards: steady. Key gaps in POS & chillers. See P1 actions below.");
     setIncludeInternal(false);
   }
-
   function saveCurrentAsDefault() {
     const titles = sections.map((s) => s.title);
     saveTemplateSectionTitles(titles);
     alert("Saved current sections as your default template.");
   }
 
-  function onLogoPick(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    bytesToDataUrl(file).then((d) => {
-      setLogo(d);
-      try {
-        window.localStorage.setItem(LOGO_KEY, d);
-      } catch {}
-    });
-  }
-  function clearLogo() {
-    setLogo(null);
-    try {
-      window.localStorage.removeItem(LOGO_KEY);
-    } catch {}
-  }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: Visit setup */}
+      {/* Left column */}
       <div className="lg:col-span-1 space-y-4">
         <div className="bg-white shadow-sm border rounded-xl">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-lg font-semibold">New Visit</h2>
+          <div className="border-b px-4 py-3 flex items-center gap-3">
+            {logo ? <img src={logo} alt="Logo" className="h-8" /> : <span className="text-slate-400 text-sm">(Add your logo below)</span>}
+            <span className="text-slate-900 font-medium">StoreSnap Notes</span>
           </div>
           <div className="p-4 space-y-3">
             <label className="text-sm font-medium">Store</label>
             <select className="w-full border rounded-md px-3 py-2" value={storeId} onChange={(e) => setStoreId(e.target.value)}>
               <option value="">Select a store</option>
-              {STORES.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {STORES.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
 
             <label className="text-sm font-medium">Purpose</label>
@@ -362,11 +360,9 @@ export default function StoreSnapNotes() {
 
             <div className="text-xs text-slate-500">Started: {formatDate(startedAt)}</div>
 
-            <div className="grid grid-cols-1 gap-2 pt-2">
-              <button onClick={newVisitFromTemplate} className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-slate-50">
-                New visit from default template
-              </button>
-            </div>
+            <button onClick={newVisitFromTemplate} className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50">
+              New visit from default template
+            </button>
           </div>
         </div>
 
@@ -376,11 +372,15 @@ export default function StoreSnapNotes() {
           </div>
           <div className="p-4 space-y-3">
             <label className="text-sm font-medium">Upload logo (PNG/JPG/SVG)</label>
-            <input type="file" accept="image/*" onChange={onLogoPick} />
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              bytesToDataUrl(file).then((d) => { setLogo(d); try { window.localStorage.setItem(LOGO_KEY, d); } catch {} });
+            }} />
             {logo && (
               <div className="flex items-center gap-3">
                 <img src={logo} className="h-10 border rounded-md" />
-                <button onClick={clearLogo} className="text-sm text-slate-600 underline">Clear</button>
+                <button onClick={() => { setLogo(null); try { window.localStorage.removeItem(LOGO_KEY); } catch {} }} className="text-sm text-slate-600 underline">Clear</button>
               </div>
             )}
             <div className="text-xs text-slate-500">Your logo is saved to this browser and will be embedded at the top of the PDF/email.</div>
@@ -393,9 +393,7 @@ export default function StoreSnapNotes() {
           </div>
           <div className="p-4 space-y-3">
             <div className="flex flex-wrap gap-2">
-              {sections.map((s) => (
-                <span key={s.id} className="rounded-2xl bg-slate-100 text-slate-700 px-3 py-1 text-xs">{s.title}</span>
-              ))}
+              {sections.map((s) => <span key={s.id} className="rounded-2xl bg-slate-100 text-slate-700 px-3 py-1 text-xs">{s.title}</span>)}
             </div>
             <div className="flex gap-2">
               <input className="flex-1 border rounded-md px-3 py-2" value={customSectionTitle} onChange={(e) => setCustomSectionTitle(e.target.value)} placeholder="Add custom section" />
@@ -421,15 +419,16 @@ export default function StoreSnapNotes() {
               Include internal-only notes in report
             </label>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button onClick={downloadPdf} className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50">Preview/Download PDF</button>
               <a href={buildMailto()} className="rounded-md border px-3 py-2 text-sm text-center hover:bg-slate-50">Open Email</a>
+              <button onClick={sendEmailWithAttachment} className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50">Send with attachments</button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right: Sections capture */}
+      {/* Right column: Notes capture */}
       <div className="lg:col-span-2 space-y-4">
         {sections.map((section) => (
           <div key={section.id} className="bg-white shadow-sm border rounded-xl">
@@ -496,20 +495,17 @@ export default function StoreSnapNotes() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Photos</label>
                     <input type="file" multiple accept="image/*" onChange={(e) => handlePhotos(section.id, note.id, e.target.files)} />
-                    {!!note.photos.length && (
-                      <div className="grid md:grid-cols-4 grid-cols-2 gap-2">
+                    {!!note.photos.length and (
+                      <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                         {note.photos.map((p, idx) => (
-                          <img key={idx} src={p} alt="upload" className="w-full h-28 object-cover rounded-xl border" />
+                          <button key={idx} type="button" onClick={() => setViewer(p)} className="group relative">
+                            <img src={p} alt="thumbnail" className="w-24 h-24 object-cover rounded-xl border shadow-sm" />
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <div className="text-right">
-                    <button className="text-sm text-slate-700 underline" onClick={() => removeNote(section.id, note.id)}>
-                      Remove note
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -517,44 +513,11 @@ export default function StoreSnapNotes() {
         ))}
       </div>
 
-      {/* Actions summary */}
-      <div className="bg-white shadow-sm border rounded-xl lg:col-span-2">
-        <div className="border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">Actions Summary</h2>
+      {viewer && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setViewer(null)}>
+          <img src={viewer} alt="preview" className="max-h-[90vh] max-w-[90vw] rounded-xl shadow-2xl" />
         </div>
-        <div className="p-4">
-          {actions.length === 0 ? (
-            <div className="text-sm text-slate-500">No actions yet. Add notes above to populate this list.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-4">Priority</th>
-                    <th className="py-2 pr-4">Action</th>
-                    <th className="py-2 pr-4">Owner</th>
-                    <th className="py-2 pr-4">Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {actions.map((a) => (
-                    <tr key={a.id} className="border-b">
-                      <td className="py-2 pr-4"><span className="rounded-2xl bg-slate-100 px-2 py-1">{a.priority}</span></td>
-                      <td className="py-2 pr-4">{a.title}</td>
-                      <td className="py-2 pr-4">{a.owner}</td>
-                      <td className="py-2 pr-4">{a.due || ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
-}
-
-function escapeHtml(str) {
-  return (str || "").replace(/[&<>\"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[ch]));
 }
